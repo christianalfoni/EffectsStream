@@ -23,40 +23,29 @@ export class InternalProducer<Input, Context> {
 	_context?: Context;
 	_executor?: Executor;
 	valueType: Input;
-	fork<Paths extends BasePaths<Paths>, OutputPath>(
-		callback: (value: Input, context: Context) => OutputPath | Promise<OutputPath> & keyof Paths,
+	fork<Paths extends { [key: string]: (p: InternalProducer<Input, Context>) => InternalProducer<any, Context> }>(
+		callback: (value: Input, context: Context) => keyof Paths,
 		paths: Paths
 	) {
-		let producer = new InternalProducer<ReturnType<Paths[OutputPath]>['valueType'], Context>();
+		let producer = new InternalProducer<any, Context>();
 		this.subscribe((value: Input, context: Context, execution: Execution) => {
 			const result = callback(value, context);
-			if (result instanceof Promise) {
-				result.then((path) => {
-					const pathProducer = new InternalProducer<Input, Context>();
-					const pathStreamCallback = paths[path];
-					const pathStream = pathStreamCallback(pathProducer);
-					pathStream.subscribe((pathValue, context, execution) => {
-						producer.next(pathValue, context, execution);
-					});
-					pathProducer.next(value, context, execution);
-				});
-			} else {
-				const pathProducer = new InternalProducer<Input, Context>();
-				const pathStreamCallback = paths[result];
-				const pathStream = pathStreamCallback(pathProducer);
-				pathStream.subscribe((pathValue, context, execution) => {
-					producer.next(pathValue, context, execution);
-				});
-				pathProducer.next(value, context, execution);
-			}
+			const pathProducer = new InternalProducer<Input, Context>();
+			const pathStreamCallback = paths[result];
+			const pathStream = pathStreamCallback(pathProducer);
+			pathStream.subscribe((pathValue, context, execution) => {
+				producer.next(pathValue, context, execution);
+			});
+			pathProducer.next(value, context, execution);
 		}, throwError);
+
 		return producer;
 	}
 	map<Output>(callback: (value: Input, context: Context) => Output) {
 		const producer = new InternalProducer<Output, Context>();
 		this.subscribe(
 			(value: Input, context: Context, execution: Execution) => {
-				const result: Output | Promise<Output> = callback(value, context);
+				const result: Output = callback(value, context);
 				if (result instanceof Promise) {
 					result
 						.then((value) => {

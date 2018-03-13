@@ -27,7 +27,7 @@ describe('Operators', () => {
 		let subscribeCalled = false;
 		const p = new Producer<string>();
 
-		p.compose((p) => p.map((value) => 123)).subscribe((value) => {
+		p.compose<number>((p) => p.map((value) => 123)).subscribe((value) => {
 			subscribeCalled = true;
 			expect(value).to.equal(123);
 		});
@@ -77,11 +77,11 @@ describe('Operators', () => {
 	it('should run FORK operator', () => {
 		let subscribeCalled = false;
 		const p = new Producer<string>();
-
+		const fork = (p: Producer<string>) => p.map((value) => 'foo');
 		p
 			.fork(() => 'bar', {
-				foo: (p: Producer<string>) => p.map((value) => 'foo'),
-				bar: (p: Producer<string>) => p.map((value) => 123)
+				foo: fork,
+				bar: (p) => p.map((value) => 123)
 			})
 			.subscribe((value, context) => {
 				subscribeCalled = true;
