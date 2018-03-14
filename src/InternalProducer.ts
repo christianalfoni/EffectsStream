@@ -29,7 +29,14 @@ export class InternalProducer<Input, Context> {
 	) {
 		let producer = new InternalProducer<any, Context>();
 		this.subscribe((value: Input, context: Context, execution: Execution) => {
-			const result = callback(value, context);
+			let result;
+			try {
+				result = callback(value, context);
+			} catch (error) {
+				producer.error(error, context, execution);
+				return;
+			}
+
 			const pathProducer = new InternalProducer<Input, Context>();
 			const pathStreamCallback = paths[result];
 			const pathStream = pathStreamCallback(pathProducer);
@@ -41,20 +48,61 @@ export class InternalProducer<Input, Context> {
 
 		return producer;
 	}
-	map<Output>(callback: (value: Input, context: Context) => Output) {
+	map<Output>(callback: (value: Input, context: Context) => Output | Promise<Output>) {
 		const producer = new InternalProducer<Output, Context>();
 		this.subscribe(
 			(value: Input, context: Context, execution: Execution) => {
-				const result: Output = callback(value, context);
+				let result;
+				try {
+					result = callback(value, context);
+				} catch (error) {
+					producer.error(error, context, execution);
+					return;
+				}
+
 				if (result instanceof Promise) {
 					result
 						.then((value) => {
 							producer.next(value, context, execution);
 						})
-						.catch(producer.error.bind(producer));
+						.catch((error) => {
+							producer.error(error, context, execution);
+						});
 				} else {
 					producer.next(result, context, execution);
 				}
+			},
+			throwError,
+			() => {}
+		);
+
+		return producer;
+	}
+	mapIdle<Output>(callback: (value: Input, context: Context) => Promise<Output>) {
+		const producer = new InternalProducer<Output, Context>();
+		let result;
+		this.subscribe(
+			(value: Input, context: Context, execution: Execution) => {
+				if (result) {
+					return;
+				}
+
+				try {
+					result = callback(value, context);
+				} catch (error) {
+					producer.error(error, context, execution);
+					return;
+				}
+
+				result
+					.then((value) => {
+						result = null;
+						producer.next(value, context, execution);
+					})
+					.catch((error) => {
+						result = null;
+						producer.error(error, context, execution);
+					});
 			},
 			throwError,
 			() => {}
@@ -116,31 +164,29 @@ export class InternalProducer<Input, Context> {
 
 		return producer;
 	}
-	/*
-  catch (callback) {
-    const producer = new InternalProducer()
-    this.subscribe((value, context, execution) => {
-      const result = callback(value)
-      if (result instanceof Promise) {
-        result.then(() => {
-          producer.next(value, context, execution)
-        }).catch(producer.error.bind(producer))
-      } else {
-        producer.next(value, context, execution)
-      }
-    }, (value) => {
-      const result = callback(value)
-      if (result instanceof Promise) {
-        result.then((value) => {
-          producer.next(value)
-        }).catch(producer.error.bind(producer))
-      } else {
-        producer.next(result)
-      }
-    })
-    return producer
-  }
-  */
+	catch<Output>(callback: (error: Error) => Output | Promise<Output>) {
+		const producer = new InternalProducer();
+		this.subscribe(
+			(value, context, execution) => {
+				producer.next(value, context, execution);
+			},
+			(value, context, execution) => {
+				const result = callback(value);
+				if (result instanceof Promise) {
+					result
+						.then((value) => {
+							producer.next(value);
+						})
+						.catch((error) => {
+							producer.error(error, context, execution);
+						});
+				} else {
+					producer.next(result, context, execution);
+				}
+			}
+		);
+		return producer;
+	}
 	subscribe(
 		next: NextCallback<Input, Context>,
 		error?: ErrorCallback<Context>,
@@ -155,15 +201,20 @@ export class InternalProducer<Input, Context> {
 	}
 	error(error: Error, context?: Context, execution?: Execution) {
 		this._listeners.forEach((listener) => {
-			listener.error(error, context || this._context, execution || this._executor.create());
+			listener.error && listener.error(error, context || this._context, execution || this._executor.create());
 		});
 	}
 	complete(value, context?: Context, execution?: Execution) {
 		this._listeners.forEach((listener) => {
-			listener.complete(value, context || this._context, execution || this._executor.create());
+			listener.complete &&
+				listener.complete(value, context || this._context, execution || this._executor.create());
 		});
 	}
 	bind(value) {
+		if (typeof value === 'undefined') {
+			return this.next.bind(this);
+		}
+
 		return this.next.bind(this, value);
 	}
 }

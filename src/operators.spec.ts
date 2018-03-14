@@ -91,4 +91,50 @@ describe('Operators', () => {
 		p.next('foo');
 		expect(subscribeCalled).to.be.ok;
 	});
+	it('should run CATCH operator', () => {
+		let subscribeCalled = false;
+		const p = new Producer<string>();
+
+		p
+			.map(() => {
+				throw new Error('test');
+			})
+			.catch((error) => {
+				expect(error.message).to.be.equal('test');
+
+				return 'bar';
+			})
+			.subscribe((value, context) => {
+				subscribeCalled = true;
+				expect(value).to.equal('bar');
+			});
+
+		p.next('foo');
+		expect(subscribeCalled).to.be.ok;
+	});
+	it('should run MAPIDLE operator', (done) => {
+		let subscribeCalledCount = 0;
+		const p = new Producer<string>();
+
+		p
+			.mapIdle((value) => {
+				return Promise.resolve(value);
+			})
+			.subscribe(
+				(value, context) => {
+					subscribeCalledCount++;
+					expect(value).to.equal('foo');
+				},
+				(error) => {
+					console.log(error);
+				}
+			);
+
+		p.next('foo');
+		p.next('bar');
+		setTimeout(() => {
+			expect(subscribeCalledCount).to.be.equal(1);
+			done();
+		});
+	});
 });
