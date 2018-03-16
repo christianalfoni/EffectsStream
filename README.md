@@ -63,7 +63,9 @@ document.querySelector('#input').addEventListener('change', onInputChange.bind()
 - [forEach](#foreach)
 - [filter](#filter)
 
-### Stream(context?)
+### Stream
+
+**(context?) => Producer**
 
 **JS**
 
@@ -142,7 +144,9 @@ const context: Context = {
 const stream = Stream<string, Context>(context)
 ```
 
-### push(value)
+### push
+
+**(value?) => Producer**
 
 Pushes a new value on to the stream.
 
@@ -166,7 +170,9 @@ const stream = Stream<string>()
 stream.push('foo')
 ```
 
-### callback(boundValue?)
+### callback
+
+**(boundValue?) => (callbackArg?) => void**
 
 Create a callback that will push a value to the stream, optionally with a bound value. If no bound value
 it will push the value when callback is called.
@@ -195,9 +201,11 @@ const callback = stream.callback('foo')
 callback() // Pushes "foo" to the stream
 ```
 
-### middleware()
+### middleware
 
-Creates a callback that will push callback arguments as an array to the stream.
+**() => (...args) => void**
+
+Creates a callback that will push callback arguments as an object to the stream.
 
 **JS**
 
@@ -223,7 +231,9 @@ const middleware = stream.middleware()
 middleware('foo', 'bar') // Pushes {0: "foo", 1: "bar"} to the stream
 ```
 
-### map(value, context?) => newValue
+### map
+
+**(value, context?) => newValue**
 
 `sync` `async`
 
@@ -255,7 +265,9 @@ const stream = Stream<string>()
 stream.push('foo')
 ```
 
-### mapWhenIdle(value, context?) => newValue?
+### mapWhenIdle
+
+**(value, context?) => newValue?**
 
 `cancelable` `async`
 
@@ -292,7 +304,9 @@ const stream = Stream<string, Context>(context)
 stream.push('123')
 ```
 
-### forEach(value, context?) => void
+### forEach
+
+**(value, context?) => void**
 
 `sync` `async`
 
@@ -326,7 +340,9 @@ const stream = Stream<string, Context>(context)
 stream.push(new Date().toString())
 ```
 
-### filter(value, context?) => true/false
+### filter
+
+**(value, context?) => boolean**
 
 `cancelable` `sync` `async`
 
