@@ -221,22 +221,20 @@ export class InternalProducer<ParentInput, Input, Context> {
 				listener.complete(value, context || this._context, execution || this._executor.create());
 		});
 	}
-	callback(boundValue) {
-		if (boundValue === 'undefined') {
-			return (arg) => this.next(arg);
+	callback(boundValue?: Input) {
+		if (typeof boundValue === 'undefined') {
+			return (arg: Input) => this.next(arg);
 		}
 
 		return () => this.next(boundValue);
 	}
 	middleware() {
 		return (...args) =>
-			this.next(
-				args.reduce((currentValue, arg, index) => {
-					currentValue[index] = arg;
+			this.next(args.reduce((currentValue, arg, index) => {
+				currentValue[index] = arg;
 
-					return currentValue;
-				}, {})
-			);
+				return currentValue;
+			}, {}) as Input);
 	}
 	push(value: ParentInput) {
 		this._parentProducer.next(value);

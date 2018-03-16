@@ -64,6 +64,8 @@ document.querySelector('#input').addEventListener('change', onInputChange.bind()
 
 ### Stream(context?)
 
+**JS**
+
 ```js
 import { Stream } from 'effects-stream'
 
@@ -94,9 +96,56 @@ const context = {
 const stream = Stream(context)
 ```
 
+**TypeScript**
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream<string>()
+```
+
+Provide a **context** for effects:
+
+```js
+import { Stream } from 'effects-stream'
+
+type Ui = {
+  html(selector: string, contenxt: string | number) => void
+}
+
+type Http = {
+  get<T>(url: string) => Promise<T>
+}
+
+type Context = {
+  ui: Ui
+  http: Http
+}
+
+const ui = {
+  html(selector, content) {
+    document.querySelector(selector).innerHTML = content
+  }
+}
+const http = {
+  get(url) {
+    return fetch(url).then(response => response.toJSON())
+  }
+}
+
+const context: Context = {
+  ui,
+  http
+}
+
+const stream = Stream<string, Context>(context)
+```
+
 ### push(value)
 
 Pushes a new value on to the stream.
+
+**JS**
 
 ```js
 import { Stream } from 'effects-stream'
@@ -106,10 +155,22 @@ const stream = Stream()
 stream.push('foo')
 ```
 
+**TypeScript**
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream<string>()
+
+stream.push('foo')
+```
+
 ### callback(boundValue?)
 
 Create a callback that will push a value to the stream, optionally with a bound value. If no bound value
 it will push the value when callback is called.
+
+**JS**
 
 ```js
 import { Stream } from 'effects-stream'
@@ -121,14 +182,40 @@ const callback = stream.callback('foo')
 callback() // Pushes "foo" to the stream
 ```
 
+**TypeScript**
+
+```ts
+import { Stream } from 'effects-stream'
+
+const stream = Stream<string>()
+
+const callback = stream.callback('foo')
+
+callback() // Pushes "foo" to the stream
+```
+
 ### middleware()
 
 Creates a callback that will push callback arguments as an array to the stream.
+
+**JS**
 
 ```js
 import { Stream } from 'effects-stream'
 
 const stream = Stream()
+
+const middleware = stream.middleware()
+
+middleware('foo', 'bar') // Pushes {0: "foo", 1: "bar"} to the stream
+```
+
+**TypeScript**
+
+```ts
+import { Stream } from 'effects-stream'
+
+const stream = Stream<{ 0: string, 1: string}>()
 
 const middleware = stream.middleware()
 
@@ -141,11 +228,26 @@ middleware('foo', 'bar') // Pushes {0: "foo", 1: "bar"} to the stream
 
 Takes in the value from the stream and returns a new value.
 
+**JS**
+
 ```js
 import { Stream } from 'effects-stream'
 
-const stream = Stream(context)
+const stream = Stream()
   .map((value) => {
+    return value.toUpperCase()
+  })
+
+stream.push('foo')
+```
+
+**TypeScript**
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream<string>()
+  .map<string>((value) => {
     return value.toUpperCase()
   })
 
@@ -154,9 +256,11 @@ stream.push('foo')
 
 ### mapWhenIdle(value, context?) => newValue?
 
-`async`
+`cancelable` `async`
 
 Takes in the value from the stream and returns a new promised value, but only if the previous promise has been resolved.
+
+**JS**
 
 ```js
 import { Stream } from 'effects-stream'
@@ -169,14 +273,49 @@ const stream = Stream(context)
 stream.push('123')
 ```
 
+**TypeScript**
+
+```js
+import { Stream } from 'effects-stream'
+import context from './context'
+
+type User = {
+  name: string
+}
+
+const stream = Stream<string, Context>(context)
+  .mapWhenIdle<User>((id, { http }) => {
+    return http.get(`/users/${id}`)
+  })
+
+stream.push('123')
+```
+
 ### filter(value, context?) => true/false
 
+`cancelable` `sync` `async`
+
 Takes in the value from the stream and returns a boolean to indicate the stream to continue or not.
+
+**JS**
 
 ```js
 import { Stream } from 'effects-stream'
 
 const stream = Stream(context)
+  .filter((value) => {
+    return value.length > 3
+  })
+
+stream.push('foo')
+```
+
+**TypeScript**
+
+```ts
+import { Stream } from 'effects-stream'
+
+const stream = Stream<string>()
   .filter((value) => {
     return value.length > 3
   })
