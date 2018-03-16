@@ -60,6 +60,7 @@ document.querySelector('#input').addEventListener('change', onInputChange.bind()
 - [middleware](#middleware)
 - [map](#map)
 - [mapWhenIdle](#mapwhenidle)
+- [forEach](#foreach)
 - [filter](#filter)
 
 ### Stream(context?)
@@ -289,6 +290,40 @@ const stream = Stream<string, Context>(context)
   })
 
 stream.push('123')
+```
+
+### forEach(value, context?) => void
+
+`sync` `async`
+
+Takes in the value from the stream, but returns nothing. Typically used to run effects without a returned value.
+
+**JS**
+
+```js
+import { Stream } from 'effects-stream'
+import context from './context'
+
+const stream = Stream(context)
+  .forEach((date, { ui }) => {
+    ui.html('#date', date)
+  })
+
+stream.push(new Date().toString())
+```
+
+**TypeScript**
+
+```ts
+import { Stream } from 'effects-stream'
+import context, { Context } from './context'
+
+const stream = Stream<string, Context>(context)
+  .forEach(date, { ui }) => {
+    ui.html('#date', date)
+  })
+
+stream.push(new Date().toString())
 ```
 
 ### filter(value, context?) => true/false
