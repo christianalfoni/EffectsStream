@@ -9,8 +9,7 @@ type Context = { foo: string };
 describe('Operators', () => {
 	it('should run MAP operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string, Context>({ foo: 'bar' });
-		p
+		const p = new Producer<string, Context>({ foo: 'bar' })
 			.map((value, context) => {
 				expect(value).to.equal('foo');
 				expect(context).to.deep.equal({ foo: 'bar' });
@@ -20,25 +19,21 @@ describe('Operators', () => {
 				subscribeCalled = true;
 				expect(value).to.equal(123);
 			});
-		p.next('foo');
+		p.push('foo');
 		expect(subscribeCalled).to.be.ok;
 	});
 	it('should run COMPOSE operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string>();
-
-		p.compose<number>((p) => p.map((value) => 123)).subscribe((value) => {
+		const p = new Producer<string>().compose<number>((p) => p.map((value) => 123)).subscribe((value) => {
 			subscribeCalled = true;
 			expect(value).to.equal(123);
 		});
-		p.next('foo');
+		p.push('foo');
 		expect(subscribeCalled).to.be.ok;
 	});
 	it('should run FOREACH operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string, Context>({ foo: 'bar' });
-
-		p
+		const p = new Producer<string, Context>({ foo: 'bar' })
 			.forEach((value, context) => {
 				expect(context).to.deep.equal({ foo: 'bar' });
 				expect(value).to.equal('foo');
@@ -48,14 +43,12 @@ describe('Operators', () => {
 				expect(value).to.equal('foo');
 				expect(context).to.deep.equal({ foo: 'bar' });
 			});
-		p.next('foo');
+		p.push('foo');
 		expect(subscribeCalled).to.be.ok;
 	});
 	it('should run FILTER operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string, Context>({ foo: 'bar' });
-
-		p
+		const p = new Producer<string, Context>({ foo: 'bar' })
 			.filter((value, context) => {
 				expect(context).to.deep.equal({ foo: 'bar' });
 				expect(value).to.equal('foo');
@@ -71,14 +64,13 @@ describe('Operators', () => {
 				subscribeCalled = true;
 				expect(context).to.deep.equal({ foo: 'bar' });
 			});
-		p.next('foo');
+		p.push('foo');
 		expect(subscribeCalled).to.not.be.ok;
 	});
 	it('should run FORK operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string>();
 		const fork = (p: Producer<string>) => p.map((value) => 'foo');
-		p
+		const p = new Producer<string>()
 			.fork(() => 'bar', {
 				foo: fork,
 				bar: (p) => p.map((value) => 123)
@@ -88,14 +80,12 @@ describe('Operators', () => {
 				expect(value).to.equal(123);
 			});
 
-		p.next('foo');
+		p.push('foo');
 		expect(subscribeCalled).to.be.ok;
 	});
 	it('should run CATCH operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string>();
-
-		p
+		const p = new Producer<string>()
 			.map(() => {
 				throw new Error('test');
 			})
@@ -109,15 +99,13 @@ describe('Operators', () => {
 				expect(value).to.equal('bar');
 			});
 
-		p.next('foo');
+		p.push('foo');
 		expect(subscribeCalled).to.be.ok;
 	});
 	it('should run MAPIDLE operator', (done) => {
 		let subscribeCalledCount = 0;
-		const p = new Producer<string>();
-
-		p
-			.mapIdle((value) => {
+		const p = new Producer<string>()
+			.mapWhenIdle((value) => {
 				return Promise.resolve(value);
 			})
 			.subscribe(
@@ -130,8 +118,8 @@ describe('Operators', () => {
 				}
 			);
 
-		p.next('foo');
-		p.next('bar');
+		p.push('foo');
+		p.push('bar');
 		setTimeout(() => {
 			expect(subscribeCalledCount).to.be.equal(1);
 			done();

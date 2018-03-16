@@ -1,125 +1,185 @@
 # EffectsStream (WIP)
-An observable stream API with focus on state and side effects management
+An observable stream API with focus on side effects management
 
-## Introduction
-Streams is a powerful concept for flow control, but they are most often related to managing transformation of values. Conceptually this can be challenging to put in the context of for example a simple button click. Let us imagine we would want to do something like this:
+- [What](#what)
+- [Why](#why)
+- [How](#how)
+- [API](#api)
+- [Redux](#redux)
+- [Mobx](#mobx)
 
-```js
-import http from 'some-http-library'
+## What
+EffectsStream is an API that allows you to manage side effects using streams. Unlike traditional streams, the operators of EffectsStream will in addition to the current stream value also expose defined effects. This allows for efficient expression and management of application logic flows.
 
-document.body.querySelector('#button').addEventListener('click', async () => {
-  const userRequest = await http.get('/user')
-  const user = userRequest.response
-  document.body.querySelector('#user').innerHTML = user.name
-})
+## Why
+Tools like [RxJS]() are very powerful. The concept of an observable and operators allows for a lot of flexibility in flows. But its academic history and its focus on value transformation makes [RxJS]() a difficult tool to grasp, and it has limitations in traditional web application development. EffectsStream is a simple API based on the concept of observables, but makes some radical changes to allow expression of application logic to be simpler and more efficient.
+
+*application logic* in this context refers to expressing state changes and side effects.
+
+## How
+
+```ts
+import { Stream } from 'effects-stream'
+import store from './store'
+
+// We define all our effects 
+const uiEffect = {
+  html(selector, content) {
+    document.querySelector(selector).innerHTML = content
+  }
+}
+
+// We expose our effects on a context
+const context = {
+  ui: uiEffect
+}
+
+// To improve the declarativeness of our code
+// we define all our logic as simple and testable functions
+const minLength = (minLength) => (value) => value.length > minLength
+const getInputValue = (event) => event.target.value
+const updateTitle = (value, { ui }) => ui.html('#title', value)
+
+// We can now compose together a stream which takes events from
+// an input and updates a title on the page if the value is longer than
+// 2 characters
+const onInputChange = Stream(context)
+  .filter(minLength(2))
+  .map(getInputValue)
+  .forEach(updateTitle)
+
+// We bind the stream to the listener, so that it triggers the stream with the event
+document.querySelector('#input').addEventListener('change', onInputChange.bind())
 ```
 
-Basically when a button is clicked we want to grab a user and insert the name on the page. This code does not reflect the concept of transforming values, but it is a very common way to express logic. What if we wrote our code like this:
+## API
+
+- [Stream](#stream)
+- [push](#push)
+- [callback](#callback)
+- [middleware](#middleware)
+- [map](#map)
+- [mapWhenIdle](#mapwhenidle)
+- [filter](#filter)
+
+### Stream(context?)
 
 ```js
 import { Stream } from 'effects-stream'
 
-const stream = Stream.create()
-  .map(getUser)
-  .forEach(renderUserName)
-
-document.body.querySelector('#button').addEventListener('click', stream.bind())
+const stream = Stream()
 ```
 
-Conceptually we are now thinking about the button clicks as a stream of clicks, where we express how to manage each click. The first **map** indicates that we want to map each click into a new value, which is the user requested from the server. The **forEach** indicates that for each user returned we want to render the username.
-
-The benefits here is that the code is more *declarative*, meaning we are encouraged to describe this flow referencing functions that does the actual job of each step. This helps a lot as complexity increases, but we also get other benefits here. Lets say we do not want to make another request and render again if we are already requesting the user.
+Provide a **context** for effects:
 
 ```js
 import { Stream } from 'effects-stream'
-
-const stream = Stream.create()
-  .mapIdle(getUser)
-  .forEach(renderUserName)
-
-document.body.querySelector('#button').addEventListener('click', stream.bind())
-```
-
-By using **mapIdle** the click will not be handled when there is an existing pending request. This is just one so called **operator** that will help you manage flows.
-
-The second part here are the *side-effects* running. We are talking to the server and we are changing the UI. Instead of running these side effects directly from our logic, we can rather provide them on the **context**.
-
-```js
-import { Stream } from 'effects-stream'
-import http from 'some-http-library'
 
 const ui = {
   html(selector, content) {
     document.querySelector(selector).innerHTML = content
   }
 }
-
-const context = { ui, http }
-
-const stream = Stream.create(context)
-  .mapIdle(getUser)
-  .forEach(renderUserName)
-
-document.body.querySelector('#button').addEventListener('click', stream.bind())
-```
-
-We have now exposed an application specific API to our streams. This makes testing a lot easier to do and you will see later how this improves the developer experience even more. The actual functions referenced can now be defined as:
-
-```js
-import { Stream } from 'effects-stream'
-import http from 'some-http-library'
-
-const ui = {...}
-const context = { ui, http }
-
-async function getUser (event, { http }) {
-  return await http.get('/user')
-}
-
-function renderUserName(user, { ui }) {
-  ui.html('#user', user.name)
-}
-
-const stream = Stream.create(context)
-  .mapIdle(getUser)
-  .forEach(renderUserName)
-
-document.body.querySelector('#button').addEventListener('click', stream.bind())
-```
-
-**Effects-Stream** is written in TypeScript so we can ensure some type safety on this code by:
-
-```ts
-import { Stream } from 'effects-stream'
-import http from 'some-http-library'
-
-type Context = {
-  http: typeof http,
-  ui: {
-    html(selector: string, content: string | number): void
+const http = {
+  get(url) {
+    return fetch(url).then(response => response.toJSON())
   }
 }
 
-type User = {
-  name: string
+const context = {
+  ui,
+  http
 }
 
-const ui = {...}
-const context: Context = { ui, http }
-
-async function getUser (event: MouseEvent, { http }: Context): Promise<User> {
-  return await http.get('/user')
-}
-
-function renderUserName(user: User, { ui }: Context) {
-  ui.html('#user', user.name)
-}
-
-const stream = Stream.create<MouseEvent, Context>(context)
-  .mapIdle<User>(getUser)
-  .forEach(renderUserName)
-
-document.body.querySelector('#button').addEventListener('click', stream.bind())
+const stream = Stream(context)
 ```
 
-Now we can safely decouple our functions and any wrongful composition will be warned by TypeScript.
+### push(value)
+
+Pushes a new value on to the stream.
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream()
+
+stream.push('foo')
+```
+
+### callback(boundValue?)
+
+Create a callback that will push a value to the stream, optionally with a bound value. If no bound value
+it will push the value when callback is called.
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream()
+
+const callback = stream.callback('foo')
+
+callback() // Pushes "foo" to the stream
+```
+
+### middleware()
+
+Creates a callback that will push callback arguments as an array to the stream.
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream()
+
+const middleware = stream.middleware()
+
+middleware('foo', 'bar') // Pushes {0: "foo", 1: "bar"} to the stream
+```
+
+### map(value, context?) => newValue
+
+`sync` `async`
+
+Takes in the value from the stream and returns a new value.
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream(context)
+  .map((value) => {
+    return value.toUpperCase()
+  })
+
+stream.push('foo')
+```
+
+### mapWhenIdle(value, context?) => newValue?
+
+`async`
+
+Takes in the value from the stream and returns a new promised value, but only if the previous promise has been resolved.
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream(context)
+  .mapWhenIdle((id, { http }) => {
+    return http.get(`/users/${id}`)
+  })
+
+stream.push('123')
+```
+
+### filter(value, context?) => true/false
+
+Takes in the value from the stream and returns a boolean to indicate the stream to continue or not.
+
+```js
+import { Stream } from 'effects-stream'
+
+const stream = Stream(context)
+  .filter((value) => {
+    return value.length > 3
+  })
+
+stream.push('foo')
+```

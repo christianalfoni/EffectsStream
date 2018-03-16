@@ -1,34 +1,31 @@
 {
-  "name": "effects-stream",
-  "version": "1.0.0",
-  "description": "An observable stream API with focus on state and side effects management",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha -r ts-node/register src/**/*.spec.ts",
-    "test:watch": "mocha -r ts-node/register src/**/*.spec.ts --watch-extensions ts --watch"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/christianalfoni/EffectsStream.git"
-  },
-  "keywords": [
-    "observable",
-    "stream",
-    "side-effects",
-    "state"
-  ],
-  "author": "Christian Alfoni",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/christianalfoni/EffectsStream/issues"
-  },
-  "homepage": "https://github.com/christianalfoni/EffectsStream#readme",
-  "devDependencies": {
-    "@types/chai": "^4.1.2",
-    "@types/mocha": "^2.2.48",
-    "chai": "^4.1.2",
-    "mocha": "^5.0.1",
-    "ts-node": "^5.0.0",
-    "typescript": "^2.8.0-dev.20180302"
-  }
+	"name": "effects-stream",
+	"version": "1.0.0",
+	"description": "An observable stream API with focus on side effects management",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"test": "mocha -r ts-node/register src/**/*.spec.ts",
+		"test:watch": "mocha -r ts-node/register src/**/*.spec.ts --watch-extensions ts --watch"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/christianalfoni/EffectsStream.git"
+	},
+	"keywords": [ "observable", "stream", "side-effects", "state" ],
+	"author": "Christian Alfoni",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/christianalfoni/EffectsStream/issues"
+	},
+	"homepage": "https://github.com/christianalfoni/EffectsStream#readme",
+	"devDependencies": {
+		"@types/chai": "^4.1.2",
+		"@types/mocha": "^2.2.48",
+		"chai": "^4.1.2",
+		"mocha": "^5.0.1",
+		"ts-node": "^5.0.0",
+		"typescript": "^2.8.0-dev.20180302"
+	}
 }

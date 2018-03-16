@@ -12,22 +12,27 @@ export type Listener<Input, Context> = {
 };
 export type Listeners<Input, Context> = Listener<Input, Context>[];
 
-type InternalProducerFactory = (input: InternalProducer<any, any>) => InternalProducer<any, any>;
-
 type Callback<InputProducer, OutputProducer> = (p: InputProducer) => OutputProducer;
 
 type BasePaths<Paths> = { [Path in keyof Paths]: Paths[Path] };
 
-export class InternalProducer<Input, Context> {
+export class InternalProducer<ParentInput, Input, Context> {
 	_listeners: Listeners<Input, Context> = [];
 	_context?: Context;
 	_executor?: Executor;
 	valueType: Input;
-	fork<Paths extends { [key: string]: (p: InternalProducer<Input, Context>) => InternalProducer<any, Context> }>(
-		callback: (value: Input, context: Context) => keyof Paths,
-		paths: Paths
-	) {
-		let producer = new InternalProducer<any, Context>();
+	_parentProducer;
+	constructor(parentProducer?) {
+		this._parentProducer = parentProducer || this;
+	}
+	fork<
+		Paths extends {
+			[key: string]: (
+				p: InternalProducer<ParentInput, Input, Context>
+			) => InternalProducer<ParentInput, any, Context>;
+		}
+	>(callback: (value: Input, context: Context) => keyof Paths, paths: Paths) {
+		let producer = new InternalProducer<ParentInput, any, Context>(this._parentProducer);
 		this.subscribe((value: Input, context: Context, execution: Execution) => {
 			let result;
 			try {
@@ -37,7 +42,7 @@ export class InternalProducer<Input, Context> {
 				return;
 			}
 
-			const pathProducer = new InternalProducer<Input, Context>();
+			const pathProducer = new InternalProducer<ParentInput, Input, Context>(this._parentProducer);
 			const pathStreamCallback = paths[result];
 			const pathStream = pathStreamCallback(pathProducer);
 			pathStream.subscribe((pathValue, context, execution) => {
@@ -49,7 +54,7 @@ export class InternalProducer<Input, Context> {
 		return producer;
 	}
 	map<Output>(callback: (value: Input, context: Context) => Output | Promise<Output>) {
-		const producer = new InternalProducer<Output, Context>();
+		const producer = new InternalProducer<ParentInput, Output, Context>(this._parentProducer);
 		this.subscribe(
 			(value: Input, context: Context, execution: Execution) => {
 				let result;
@@ -78,8 +83,8 @@ export class InternalProducer<Input, Context> {
 
 		return producer;
 	}
-	mapIdle<Output>(callback: (value: Input, context: Context) => Promise<Output>) {
-		const producer = new InternalProducer<Output, Context>();
+	mapWhenIdle<Output>(callback: (value: Input, context: Context) => Promise<Output>) {
+		const producer = new InternalProducer<ParentInput, Output, Context>(this._parentProducer);
 		let result;
 		this.subscribe(
 			(value: Input, context: Context, execution: Execution) => {
@@ -110,8 +115,12 @@ export class InternalProducer<Input, Context> {
 
 		return producer;
 	}
-	compose<Output>(callback: (producer: InternalProducer<Input, Context>) => InternalProducer<Output, Context>) {
-		const producer = new InternalProducer<Input, Context>();
+	compose<Output>(
+		callback: (
+			producer: InternalProducer<ParentInput, Input, Context>
+		) => InternalProducer<ParentInput, Output, Context>
+	) {
+		const producer = new InternalProducer<ParentInput, Input, Context>(this._parentProducer);
 		this.subscribe(
 			(value: Input, context: Context, execution: Execution) => {
 				producer.next(value, context, execution);
@@ -123,7 +132,7 @@ export class InternalProducer<Input, Context> {
 		return callback(producer);
 	}
 	forEach(callback: (value: Input, context: Context) => void | Promise<void>) {
-		const producer = new InternalProducer<Input, Context>();
+		const producer = new InternalProducer<ParentInput, Input, Context>(this._parentProducer);
 		this.subscribe(
 			(value: Input, context: Context, execution: Execution) => {
 				const result = callback(value, context);
@@ -144,7 +153,7 @@ export class InternalProducer<Input, Context> {
 		return producer;
 	}
 	filter(callback: (value: Input, context: Context) => boolean | Promise<boolean>) {
-		const producer = new InternalProducer<Input, Context>();
+		const producer = new InternalProducer<ParentInput, Input, Context>(this._parentProducer);
 		this.subscribe(
 			(value: Input, context: Context, execution: Execution) => {
 				const result = callback(value, context);
@@ -165,7 +174,7 @@ export class InternalProducer<Input, Context> {
 		return producer;
 	}
 	catch<Output>(callback: (error: Error) => Output | Promise<Output>) {
-		const producer = new InternalProducer();
+		const producer = new InternalProducer(this._parentProducer);
 		this.subscribe(
 			(value, context, execution) => {
 				producer.next(value, context, execution);
@@ -193,6 +202,8 @@ export class InternalProducer<Input, Context> {
 		complete?: CompleteCallback<Context>
 	) {
 		this._listeners.push({ next, error, complete });
+
+		return this;
 	}
 	next(value: Input, context?: Context, execution?: Execution) {
 		this._listeners.forEach((listener) => {
@@ -210,11 +221,24 @@ export class InternalProducer<Input, Context> {
 				listener.complete(value, context || this._context, execution || this._executor.create());
 		});
 	}
-	bind(value) {
-		if (typeof value === 'undefined') {
-			return this.next.bind(this);
+	callback(boundValue) {
+		if (boundValue === 'undefined') {
+			return (arg) => this.next(arg);
 		}
 
-		return this.next.bind(this, value);
+		return () => this.next(boundValue);
+	}
+	middleware() {
+		return (...args) =>
+			this.next(
+				args.reduce((currentValue, arg, index) => {
+					currentValue[index] = arg;
+
+					return currentValue;
+				}, {})
+			);
+	}
+	push(value: ParentInput) {
+		this._parentProducer.next(value);
 	}
 }
