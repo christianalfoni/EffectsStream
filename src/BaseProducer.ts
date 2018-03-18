@@ -44,20 +44,20 @@ export class BaseProducer<ParentInput, Input, Context> {
 				listener.complete(value, context || this._context, execution || this._executor.create());
 		});
 	}
-	callback(boundValue?: Input) {
+	callback(boundValue?: ParentInput) {
 		if (typeof boundValue === 'undefined') {
-			return (arg: Input) => this.next(arg);
+			return (arg: ParentInput) => this.push(arg);
 		}
 
-		return () => this.next(boundValue);
+		return () => this.push(boundValue);
 	}
 	middleware() {
 		return (...args) =>
-			this.next(args.reduce((currentValue, arg, index) => {
+			this.push(args.reduce((currentValue, arg, index) => {
 				currentValue[index] = arg;
 
 				return currentValue;
-			}, {}) as Input);
+			}, {}) as ParentInput);
 	}
 	push(value: ParentInput) {
 		this._parentProducer.next(value);
