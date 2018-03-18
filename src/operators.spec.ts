@@ -83,20 +83,44 @@ describe('Operators', () => {
 		p.push('foo');
 		expect(subscribeCalled).to.be.ok;
 	});
-	it('should run CATCH operator', () => {
+	it('should run CATCH operator', (done) => {
+		let subscribeCalled = false;
+		const p = new Producer<string>()
+			.map(() => {
+				return Promise.reject('error');
+			})
+			.catch((value) => {
+				return 'bar';
+			})
+			.subscribe((value) => {
+				expect(value).to.equal('bar');
+				subscribeCalled = true;
+			});
+
+		p.push('foo');
+		setTimeout(() => {
+			expect(subscribeCalled).to.be.ok;
+			done();
+		});
+	});
+	it('should run EITHER operator', () => {
 		let subscribeCalled = false;
 		const p = new Producer<string>()
 			.map(() => {
 				throw new Error('test');
 			})
-			.catch((error) => {
-				expect(error.message).to.be.equal('test');
-
-				return 'bar';
-			})
-			.subscribe((value, context) => {
+			.either(
+				(stream) =>
+					stream.map((value) => {
+						return 123;
+					}),
+				(stream) =>
+					stream.map((value) => {
+						return 'foo';
+					})
+			)
+			.subscribe((value) => {
 				subscribeCalled = true;
-				expect(value).to.equal('bar');
 			});
 
 		p.push('foo');
