@@ -1,3 +1,4 @@
+/*
 import { Observable } from './Observable';
 import { Execution } from './Executor';
 import { expect } from 'chai';
@@ -28,3 +29,4 @@ describe('Producer', () => {
 		expect(subscribeCalled).to.be.ok;
 	});
 });
+*/

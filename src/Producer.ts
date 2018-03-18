@@ -2,6 +2,9 @@ import { Execution } from './Executor';
 import { BaseProducer } from './BaseProducer';
 import { throwError } from './utils';
 
+import map from './operators/map'
+import fork from './operators/fork'
+
 export class Producer<ParentInput, Input, Context> extends BaseProducer<ParentInput, Input, Context> {
 	constructor(parentProducer?) {
 		super(parentProducer);
@@ -11,56 +14,10 @@ export class Producer<ParentInput, Input, Context> extends BaseProducer<ParentIn
 			[key: string]: (p: Producer<ParentInput, Input, Context>) => Producer<ParentInput, any, Context>;
 		}
 	>(callback: (value: Input, context: Context) => keyof Paths, paths: Paths) {
-		let producer = new Producer<ParentInput, any, Context>(this._parentProducer);
-		this.subscribe((value: Input, context: Context, execution: Execution) => {
-			let result;
-			try {
-				result = callback(value, context);
-			} catch (error) {
-				producer.error(error, context, execution);
-				return;
-			}
-
-			const pathProducer = new Producer<ParentInput, Input, Context>(this._parentProducer);
-			const pathStreamCallback = paths[result];
-			const pathStream = pathStreamCallback(pathProducer);
-			pathStream.subscribe((pathValue, context, execution) => {
-				producer.next(pathValue, context, execution);
-			});
-			pathProducer.next(value, context, execution);
-		}, throwError);
-
-		return producer;
+		return fork<Paths, ParentInput, Input, Context>(this, callback, paths)
 	}
 	map<Output>(callback: (value: Input, context: Context) => Output | Promise<Output>) {
-		const producer = new Producer<ParentInput, Output, Context>(this._parentProducer);
-		this.subscribe(
-			(value: Input, context: Context, execution: Execution) => {
-				let result;
-				try {
-					result = callback(value, context);
-				} catch (error) {
-					producer.error(error, context, execution);
-					return;
-				}
-
-				if (result instanceof Promise) {
-					result
-						.then((value) => {
-							producer.next(value, context, execution);
-						})
-						.catch((error) => {
-							producer.error(error, context, execution);
-						});
-				} else {
-					producer.next(result, context, execution);
-				}
-			},
-			throwError,
-			() => {}
-		);
-
-		return producer;
+		return map<Output, ParentInput, Input, Context>(this, callback)
 	}
 	mapWhenIdle<Output>(callback: (value: Input, context: Context) => Promise<Output>) {
 		const producer = new Producer<ParentInput, Output, Context>(this._parentProducer);
