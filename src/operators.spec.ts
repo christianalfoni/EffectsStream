@@ -1,15 +1,14 @@
-import { Producer } from './Producer';
+import { Observable } from './Observable';
 import { Execution } from './Executor';
 import { expect } from 'chai';
 import 'mocha';
-import { InternalProducer } from './InternalProducer';
 
 type Context = { foo: string };
 
 describe('Operators', () => {
 	it('should run MAP operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string, Context>({ foo: 'bar' })
+		const p = new Observable<string, Context>({ foo: 'bar' })
 			.map((value, context) => {
 				expect(value).to.equal('foo');
 				expect(context).to.deep.equal({ foo: 'bar' });
@@ -24,7 +23,7 @@ describe('Operators', () => {
 	});
 	it('should run COMPOSE operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string>().compose<number>((p) => p.map((value) => 123)).subscribe((value) => {
+		const p = new Observable<string>().compose<number>((p) => p.map((value) => 123)).subscribe((value) => {
 			subscribeCalled = true;
 			expect(value).to.equal(123);
 		});
@@ -33,7 +32,7 @@ describe('Operators', () => {
 	});
 	it('should run FOREACH operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string, Context>({ foo: 'bar' })
+		const p = new Observable<string, Context>({ foo: 'bar' })
 			.forEach((value, context) => {
 				expect(context).to.deep.equal({ foo: 'bar' });
 				expect(value).to.equal('foo');
@@ -48,7 +47,7 @@ describe('Operators', () => {
 	});
 	it('should run FILTER operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string, Context>({ foo: 'bar' })
+		const p = new Observable<string, Context>({ foo: 'bar' })
 			.filter((value, context) => {
 				expect(context).to.deep.equal({ foo: 'bar' });
 				expect(value).to.equal('foo');
@@ -69,8 +68,8 @@ describe('Operators', () => {
 	});
 	it('should run FORK operator', () => {
 		let subscribeCalled = false;
-		const fork = (p: Producer<string>) => p.map((value) => 'foo');
-		const p = new Producer<string>()
+		const fork = (p: Observable<string>) => p.map((value) => 'foo');
+		const p = new Observable<string>()
 			.fork(() => 'bar', {
 				foo: fork,
 				bar: (p) => p.map((value) => 123)
@@ -85,7 +84,7 @@ describe('Operators', () => {
 	});
 	it('should run CATCH operator', (done) => {
 		let subscribeCalled = false;
-		const p = new Producer<string>()
+		const p = new Observable<string>()
 			.map(() => {
 				return Promise.reject('error');
 			})
@@ -105,7 +104,7 @@ describe('Operators', () => {
 	});
 	it('should run EITHER operator', () => {
 		let subscribeCalled = false;
-		const p = new Producer<string>()
+		const p = new Observable<string>()
 			.map(() => {
 				throw new Error('test');
 			})
@@ -128,7 +127,7 @@ describe('Operators', () => {
 	});
 	it('should run MAPIDLE operator', (done) => {
 		let subscribeCalledCount = 0;
-		const p = new Producer<string>()
+		const p = new Observable<string>()
 			.mapWhenIdle((value) => {
 				return Promise.resolve(value);
 			})

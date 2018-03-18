@@ -1,56 +1,7 @@
 # EffectsStream (WIP)
 An observable stream API with focus on side effects management
 
-- [What](#what)
-- [Why](#why)
-- [How](#how)
-- [API](#api)
-- [Redux](#redux)
-- [Mobx](#mobx)
-
-## What
-EffectsStream is an API that allows you to manage side effects using streams. Unlike traditional streams, the operators of EffectsStream will in addition to the current stream value also expose defined effects. This allows for efficient expression and management of application logic flows.
-
-## Why
-Tools like [RxJS]() are very powerful. The concept of an observable and operators allows for a lot of flexibility in flows. But its academic history and its focus on value transformation makes [RxJS]() a difficult tool to grasp, and it has limitations in traditional web application development. EffectsStream is a simple API based on the concept of observables, but makes some radical changes to allow expression of application logic to be simpler and more efficient.
-
-*application logic* in this context refers to expressing state changes and side effects.
-
-## How
-
-```ts
-import { Stream } from 'effects-stream'
-import store from './store'
-
-// We define all our effects 
-const uiEffect = {
-  html(selector, content) {
-    document.querySelector(selector).innerHTML = content
-  }
-}
-
-// We expose our effects on a context
-const context = {
-  ui: uiEffect
-}
-
-// To improve the declarativeness of our code
-// we define all our logic as simple and testable functions
-const minLength = (minLength) => (value) => value.length > minLength
-const getInputValue = (event) => event.target.value
-const updateTitle = (value, { ui }) => ui.html('#title', value)
-
-// We can now compose together a stream which takes events from
-// an input and updates a title on the page if the value is longer than
-// 2 characters
-const onInputChange = Stream(context)
-  .filter(minLength(2))
-  .map(getInputValue)
-  .forEach(updateTitle)
-
-// We bind the stream to the listener, so that it triggers the stream with the event
-document.querySelector('#input').addEventListener('change', onInputChange.bind())
-```
+Please read [the following article]() to understand why this library was built.
 
 ## API
 
@@ -65,7 +16,7 @@ document.querySelector('#input').addEventListener('change', onInputChange.bind()
 
 ### Stream
 
-**(context?) => Producer**
+**(context?) => Observable**
 
 **JS**
 
