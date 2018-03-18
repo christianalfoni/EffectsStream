@@ -4,6 +4,11 @@ import { throwError } from './utils';
 
 import map from './operators/map'
 import fork from './operators/fork'
+import mapWhenIdle from './operators/mapWhenIdle'
+import compose from './operators/compose'
+import forEach from './operators/forEach'
+import filter from './operators/filter'
+import either from './operators/either'
 
 export class Producer<ParentInput, Input, Context> extends BaseProducer<ParentInput, Input, Context> {
 	constructor(parentProducer?) {
@@ -20,137 +25,23 @@ export class Producer<ParentInput, Input, Context> extends BaseProducer<ParentIn
 		return map<Output, ParentInput, Input, Context>(this, callback)
 	}
 	mapWhenIdle<Output>(callback: (value: Input, context: Context) => Promise<Output>) {
-		const producer = new Producer<ParentInput, Output, Context>(this._parentProducer);
-		let result;
-		this.subscribe(
-			(value: Input, context: Context, execution: Execution) => {
-				if (result) {
-					return;
-				}
-
-				try {
-					result = callback(value, context);
-				} catch (error) {
-					producer.error(error, context, execution);
-					return;
-				}
-
-				result
-					.then((value) => {
-						result = null;
-						producer.next(value, context, execution);
-					})
-					.catch((error) => {
-						result = null;
-						producer.error(error, context, execution);
-					});
-			},
-			throwError,
-			() => {}
-		);
-
-		return producer;
+		return mapWhenIdle<Output, ParentInput, Input, Context>(this, callback)
 	}
 	compose<Output>(
 		callback: (producer: Producer<ParentInput, Input, Context>) => Producer<ParentInput, Output, Context>
 	) {
-		const producer = new Producer<ParentInput, Input, Context>(this._parentProducer);
-		this.subscribe(
-			(value: Input, context: Context, execution: Execution) => {
-				producer.next(value, context, execution);
-			},
-			throwError,
-			() => {}
-		);
-
-		return callback(producer);
+		return compose<Output, ParentInput, Input, Context>(this, callback)
 	}
 	forEach(callback: (value: Input, context: Context) => void | Promise<void>) {
-		const producer = new Producer<ParentInput, Input, Context>(this._parentProducer);
-		this.subscribe(
-			(value: Input, context: Context, execution: Execution) => {
-				const result = callback(value, context);
-				if (result instanceof Promise) {
-					result
-						.then(() => {
-							producer.next(value, context, execution);
-						})
-						.catch(producer.error.bind(producer));
-				} else {
-					producer.next(value, context, execution);
-				}
-			},
-			throwError,
-			() => {}
-		);
-
-		return producer;
+		return forEach(this, callback)
 	}
 	filter(callback: (value: Input, context: Context) => boolean | Promise<boolean>) {
-		const producer = new Producer<ParentInput, Input, Context>(this._parentProducer);
-		this.subscribe(
-			(value: Input, context: Context, execution: Execution) => {
-				const result = callback(value, context);
-				if (result instanceof Promise) {
-					result
-						.then((shouldContinue) => {
-							shouldContinue && producer.next(value, context, execution);
-						})
-						.catch(producer.error.bind(producer));
-				} else {
-					result && producer.next(value, context, execution);
-				}
-			},
-			throwError,
-			() => {}
-		);
-
-		return producer;
-	}
-	catch<Output>(callback: (value: Error, context: Context) => Output | Promise<Output>) {
-		const producer = new Producer<ParentInput, Input | Output, Context>(this._parentProducer);
-		this.subscribe(
-			(value, context, execution) => {
-				producer.next(value, context, execution);
-			},
-			(value, context, execution) => {
-				const result = callback(value, context);
-				if (result instanceof Promise) {
-					result
-						.then((promiseValue) => {
-							producer.next(promiseValue, context, execution);
-						})
-						.catch((error) => {
-							producer.error(error, context, execution);
-						});
-				} else {
-					producer.next(result, context, execution);
-				}
-			}
-		);
-
-		return producer;
+		return filter(this, callback)
 	}
 	either<Output, ErrorOutput>(
 		callback: (producer: Producer<ParentInput, Input, Context>) => Producer<ParentInput, Output, Context>,
 		errorCallback: (producer: Producer<ParentInput, Error, Context>) => Producer<ParentInput, ErrorOutput, Context>
 	) {
-		const returnedProducer = new Producer<ParentInput, Output | ErrorOutput, Context>(this._parentProducer);
-		this.subscribe(
-			(value, context, execution) => {
-				const producer = new Producer<ParentInput, Input, Context>(this._parentProducer);
-				const newProducer = callback(producer);
-				newProducer.subscribe((value) => returnedProducer.next(value, context, execution));
-				producer.next(value, context, execution);
-			},
-			(value, context, execution) => {
-				const producer = new Producer<ParentInput, Error, Context>(this._parentProducer);
-				const newProducer = errorCallback(producer);
-				newProducer.subscribe((value) => returnedProducer.next(value, context, execution));
-				producer.next(value, context, execution);
-			}
-		);
-
-		return returnedProducer;
+		return either<Output, ErrorOutput, ParentInput, Input, Context>(this, callback, errorCallback)
 	}
 }

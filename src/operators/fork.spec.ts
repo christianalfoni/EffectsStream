@@ -3,7 +3,7 @@ import { Execution } from '../Executor';
 import { expect } from 'chai';
 import 'mocha';
 
-describe('FORK', () => {
+describe('fork', () => {
 	it('should run with context', (done) => {
     type Context = { foo: string };
 

@@ -13,6 +13,7 @@ Please read [the following article]() to understand why this library was built.
 - [mapWhenIdle](#mapwhenidle)
 - [forEach](#foreach)
 - [filter](#filter)
+- [either](#either)
 
 ### Stream
 

@@ -3,41 +3,39 @@ import { Execution } from '../Executor';
 import { expect } from 'chai';
 import 'mocha';
 
-describe('map', () => {
+describe('forEach', () => {
 	it('should run with context', (done) => {
     type Context = { foo: string };
 
 		const observable = new Observable<string, Context>({ foo: 'bar' })
-			.map((value, context) => {
+			.forEach((value, context) => {
         expect(context).to.deep.equal({ foo: 'bar' });
         done()
 			})
 
     observable.push('foo');
   });
-  it('should map to new value sync', (done) => {
+  it('should run sync', (done) => {
 		const observable = new Observable<string>()
-			.map((value) => {
+			.forEach((value) => {
 				expect(value).to.equal('foo');
-
-				return 123;
 			})
 			.subscribe((value) => {
-        expect(value).to.equal(123);
+        expect(value).to.equal('foo');
         done()
       });
 
     observable.push('foo');
   });
-  it('should map to new value async', (done) => {
+  it('should run async', (done) => {
 		const observable = new Observable<string>()
-			.map((value) => {
+			.forEach((value) => {
 				expect(value).to.equal('foo');
 
-				return Promise.resolve(123);
+				return Promise.resolve();
 			})
 			.subscribe((value) => {
-        expect(value).to.equal(123);
+        expect(value).to.equal('foo');
         done()
       });
 
