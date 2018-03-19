@@ -1,0 +1,56 @@
+import { Observable } from '../Observable';
+import { Execution } from '../Executor';
+import { expect } from 'chai';
+import { nextTick } from '../utils';
+import 'mocha';
+
+describe('mapLatest', () => {
+	it('should run with context', (done) => {
+		type Context = { foo: string };
+
+		const observable = new Observable<string, Context>({ foo: 'bar' })
+			.mapLatest((value, context) => {
+				expect(context).to.deep.equal({ foo: 'bar' });
+				return Promise.resolve();
+			})
+			.subscribe(() => {
+				done();
+			});
+
+		observable.push('foo');
+	});
+	it('should map to new value async', (done) => {
+		const observable = new Observable<string>()
+			.mapLatest((value) => {
+				expect(value).to.equal('foo');
+
+				return Promise.resolve(123);
+			})
+			.subscribe((value) => {
+				expect(value).to.equal(123);
+				done();
+			});
+
+		observable.push('foo');
+	});
+	it('should only pass latest value if out of sync', (done) => {
+		let count = 0;
+		const observable = new Observable<number>()
+			.mapLatest((value) => {
+				return new Promise((resolve) => {
+					nextTick(() => resolve(value), value);
+				});
+			})
+			.subscribe((value) => {
+				count++;
+				expect(value).to.equal(1);
+			});
+
+		observable.push(2);
+		observable.push(1);
+		nextTick(() => {
+			expect(count).to.equal(1);
+			done();
+		}, 3);
+	});
+});

@@ -10,6 +10,7 @@ import forEach from './operators/forEach';
 import filter from './operators/filter';
 import either from './operators/either';
 import debounce from './operators/debounce';
+import mapLatest from './operators/mapLatest';
 
 export class Producer<ParentInput, Input, Context> extends BaseProducer<ParentInput, Input, Context> {
 	constructor(parentProducer?) {
@@ -24,6 +25,9 @@ export class Producer<ParentInput, Input, Context> extends BaseProducer<ParentIn
 	}
 	map<Output>(callback: (value: Input, context: Context) => Output | Promise<Output>) {
 		return map<Output, ParentInput, Input, Context>(this, callback);
+	}
+	mapLatest<Output>(callback: (value: Input, context: Context) => Promise<Output>) {
+		return mapLatest<Output, ParentInput, Input, Context>(this, callback);
 	}
 	mapWhenIdle<Output>(callback: (value: Input, context: Context) => Promise<Output>) {
 		return mapWhenIdle<Output, ParentInput, Input, Context>(this, callback);
