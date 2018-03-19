@@ -17,6 +17,21 @@ describe('mapWhenIdle', () => {
 
     observable.push('foo');
   });
+  it('should run with context', (done) => {
+    type BoundContext = { foo: string };
+
+		const boundStream = new Observable<string, {}, BoundContext>()
+			.mapWhenIdle((value, _, boundContext) => {
+        expect(boundContext).to.deep.equal({ foo: 'bar' });
+        return Promise.resolve()
+      })
+      .forEach(() => done())
+      .bindContext({
+        foo: 'bar'
+      })
+
+      boundStream('foo');
+  });
   it('should map to new value async', (done) => {
 		const observable = new Observable<string>()
 			.mapWhenIdle((value) => {

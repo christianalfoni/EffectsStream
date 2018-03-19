@@ -15,6 +15,18 @@ describe('forEach', () => {
 
     observable.push('foo');
   });
+  it('should run with bound context', (done) => {
+    type BoundContext = { foo: string };
+
+		const boundStream = new Observable<string, {}, BoundContext>()
+			.forEach((value, _, boundContext) => {
+        expect(boundContext).to.deep.equal({ foo: 'bar' });
+        done()
+      })
+      .bindContext({ foo: 'bar' })
+
+      boundStream('foo');
+  });
   it('should run sync', (done) => {
 		const observable = new Observable<string>()
 			.forEach((value) => {

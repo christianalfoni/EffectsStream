@@ -15,6 +15,20 @@ describe('map', () => {
 
     observable.push('foo');
   });
+  it('should run with bound context', (done) => {
+    type BoundContext = { foo: string };
+
+		const boundStream = new Observable<string, {}, BoundContext>()
+			.map((value, _, boundContext) => {
+        expect(boundContext).to.deep.equal({ foo: 'bar' });
+        done()
+      })
+      .bindContext({
+        foo: 'bar'
+      })
+
+      boundStream('foo');
+  });
   it('should map to new value sync', (done) => {
 		const observable = new Observable<string>()
 			.map((value) => {

@@ -16,6 +16,21 @@ describe('filter', () => {
 
     observable.push('foo');
   });
+  it('should run with bound context', (done) => {
+    type BoundContext = { foo: string };
+
+		const boundedStream = new Observable<string, {}, BoundContext>()
+			.filter((value, _, boundContext) => {
+        expect(boundContext).to.deep.equal({ foo: 'bar' });
+        done()
+        return true
+      })
+      .bindContext({
+        foo: 'bar'
+      })
+
+      boundedStream('foo');
+  });
   it('should run sync', (done) => {
 		const observable = new Observable<string>()
 			.filter((value) => {

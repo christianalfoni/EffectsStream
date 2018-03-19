@@ -1,7 +1,7 @@
 import { Executor } from './Executor';
 import { Producer } from './Producer';
 
-export class Observable<Input, Context = {}> extends Producer<Input, Input, Context> {
+export class Observable<Input, Context = {}, BoundContext = {}> extends Producer<Input, Input, Context, BoundContext> {
 	_context: Context;
 	_executor: Executor;
 	constructor(context?: Context) {

@@ -1,10 +1,10 @@
 import { Observable } from './Observable';
 import { Producer } from './Producer';
 
-export type ComposableStream<Input, Output, Context = {}> = (stream: Producer<any, Input, Context>) => Producer<any, Output, Context>
+export type ComposableStream<Input, Output, Context = {}, BoundContext = {}> = (stream: Producer<any, Input, Context, BoundContext>) => Producer<any, Output, Context, BoundContext>
 
 export { Producer } from './Producer';
 
-export const Stream = <Input, Context = {}>(context?: Context) => {
-	return new Observable<Input, Context>(context);
+export const Stream = <Input, Context = {}, BoundContext = {}>(context?: Context) => {
+	return new Observable<Input, Context, BoundContext>(context);
 };
