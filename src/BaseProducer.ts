@@ -1,7 +1,12 @@
 import { Executor, Execution } from './Executor';
 
 export type Listeners<Input, Context> = Listener<Input, Context>[];
-export type NextCallback<Input, Context> = (value: Input, context: Context, execution: Execution, boundValue: any) => void;
+export type NextCallback<Input, Context> = (
+	value: Input,
+	context: Context,
+	execution: Execution,
+	boundValue: any
+) => void;
 export type ErrorCallback<Context> = (value: Error, context: Context, execution: Execution) => void;
 export type CompleteCallback<Context> = (value: any, context: Context, execution: Execution) => void;
 
@@ -60,17 +65,17 @@ export class BaseProducer<ParentInput, Input, Context, BoundContext> {
 			}, {}) as ParentInput);
 	}
 	bindContext(boundContext: BoundContext) {
-		const producer = this
-		return function (value: ParentInput) {
-			producer._parentProducer. next(value, null, null, boundContext);	
-		}	
+		const producer = this;
+		return function(value: ParentInput) {
+			producer._parentProducer.next(value, null, null, boundContext);
+		};
 	}
 	bind() {
-		const producer = this
+		const producer = this;
 
-		return function (this: BoundContext, value: ParentInput) {
-			producer._parentProducer. next(value, null, null, this);	
-		}
+		return function(this: BoundContext, value: ParentInput) {
+			producer._parentProducer.next(value, null, null, this);
+		};
 	}
 	push(value: ParentInput) {
 		this._parentProducer.next(value);

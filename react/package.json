@@ -1,0 +1,6 @@
+{
+	"name": "effects-stream/react",
+	"private": true,
+	"main": "../dist/react/index.js",
+	"typings": "../dist/react/index.d.ts"
+}
