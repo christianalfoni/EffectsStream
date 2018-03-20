@@ -1,0 +1,20 @@
+{
+	"plugins": [ "theme-api" ],
+	"pluginsConfig": {
+		"theme-api": {
+			"split": true,
+			"languages": [
+				{
+					"lang": "js",
+					"name": "JavaScript",
+					"default": true
+				},
+				{
+					"lang": "ts",
+					"name": "TypeScript",
+					"default": false
+				}
+			]
+		}
+	}
+}

@@ -1,7 +1,21 @@
-# EffectsStream (WIP)
-An observable stream API with focus on side effects management
+# EffectsStream
 
-Please read [the following article]() to understand why this library was built.
+{% method %}
+## Install {#install}
+
+The first thing is to get the GitBook API client.
+
+{% sample lang="ts" %}
+```bash
+$ npm install effects-stream
+```
+
+{% sample lang="js" %}
+```bash
+$ npm install effects-stream
+```
+
+{% endmethod %}
 
 ## API
 
@@ -15,86 +29,7 @@ Please read [the following article]() to understand why this library was built.
 - [filter](#filter)
 - [either](#either)
 
-### Stream
 
-**(context?) => Observable**
-
-**JS**
-
-```js
-import { Stream } from 'effects-stream'
-
-const stream = Stream()
-```
-
-Provide a **context** for effects:
-
-```js
-import { Stream } from 'effects-stream'
-
-const ui = {
-  html(selector, content) {
-    document.querySelector(selector).innerHTML = content
-  }
-}
-const http = {
-  get(url) {
-    return fetch(url).then(response => response.toJSON())
-  }
-}
-
-const context = {
-  ui,
-  http
-}
-
-const stream = Stream(context)
-```
-
-**TypeScript**
-
-```js
-import { Stream } from 'effects-stream'
-
-const stream = Stream<string>()
-```
-
-Provide a **context** for effects:
-
-```js
-import { Stream } from 'effects-stream'
-
-type Ui = {
-  html(selector: string, contenxt: string | number) => void
-}
-
-type Http = {
-  get<T>(url: string) => Promise<T>
-}
-
-type Context = {
-  ui: Ui
-  http: Http
-}
-
-const ui = {
-  html(selector, content) {
-    document.querySelector(selector).innerHTML = content
-  }
-}
-const http = {
-  get(url) {
-    return fetch(url).then(response => response.toJSON())
-  }
-}
-
-const context: Context = {
-  ui,
-  http
-}
-
-const stream = Stream<string, Context>(context)
-```
 
 ### push
 
